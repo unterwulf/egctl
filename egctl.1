@@ -1,0 +1,87 @@
+.\"
+.\" Copyright (c) 2014 Vitaly Sinilin <vs@kp4.ru>
+.\"
+.\" See the included COPYING file.
+.\"
+.TH egctl 1 "13 August 2014" egctl
+.SH NAME
+egctl \- EnerGenie EG-PMS-LAN control utility
+.SH SYNOPSIS
+.B egctl
+.I NAME
+.RI [ "S1 S2 S3 S4" ]
+.SH DESCRIPTION
+.B egctl
+is a program to control state of EnerGenie Programmable surge protector
+with LAN interface. It uses native EG-PMS-LAN data exchange protocol
+version 2.0, not HTTP. When executed with the only argument it dumps state of the
+specified device. If all five arguments are specified, it changes state
+of the device and dumps the new state.
+.br
+.SH OPTIONS
+.TP
+.I NAME
+Name of the device in configuration file. It has no relation with IP address
+or domain name.
+.TP
+.I Sn
+An action to perform on
+.IR n \-th
+socket. Possible values are:
+.BR on ", " off ", " toggle " and " left .
+.SH CONFIGURATION
+Configuration file is a table of devices. Each device is described on a
+separate line; fields on each line are separated by tabs or spaces.
+Lines starting with '#' are comments, blank lines are ignored.
+.TP
+.B The first field
+Name of device. It is a string that will be used to address the device in
+the utility commands. It is not necessary to be the same as
+.B Server name
+in web interface.
+.TP
+.B The second field
+IP address of device
+.TP
+.B The third field
+TCP port of device
+.RB ( "Power Manager client port"
+in web interface)
+.TP
+.B The fourth field
+Password
+.SH EXAMPLES
+Suppose a user has two EG-PMS-LAN devices configured as follows:
+.IP
+1. 192.168.0.10, port 5000, password hackme
+.br
+2. 192.168.10.10, port 5001, password hackmesoftly
+.LP
+In order to control them using the utility the user needs to create a
+configuration file like the following:
+.IP
+eg1 192.168.0.10  5000 hackme
+.br
+eg2 192.168.10.10 5001 hackmesoftly
+.LP
+Now she can get status of the devices with commands
+.IP
+.B egctl eg1
+.br
+.B egctl eg2
+.LP
+and switch state of AC power sockets with a command like
+.IP
+.B egctl eg1 on left left off
+.LP
+.SH FILES
+.TP
+.I ~/.egtab
+user's configuration file
+.TP
+.I /etc/egtab
+system-wide configuration file
+.SH AUTHOR
+Written by Vitaly Sinilin <vs@kp4.ru>
+.SH TRADEMARKS
+EnerGenie is a registered trademark of Gembird Holding B.V.
