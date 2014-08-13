@@ -4,8 +4,10 @@
 # See the included COPYING file.
 #
 
+CFLAGS = -W -Wall
+
 ifdef DEBUG
-	CFLAGS = -g -DDEBUG
+	CFLAGS += -g -DDEBUG
 endif
 
 DESTDIR =

@@ -7,17 +7,18 @@
  * see the included COPYING file.
  */
 
+#include <arpa/inet.h>
 #include <errno.h>
-#include <pwd.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <pwd.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #define TASK_LEN            4
@@ -109,7 +110,8 @@ inline uint16_t host_to_le16(uint16_t hostu16)
 void xread(int fd, void *buf, size_t count)
 {
     ssize_t ret = read(fd, buf, count);
-    if (ret == count) {
+
+    if (ret == (ssize_t)count) {
         return;
     } else if (ret == -1) {
         if (errno != EINTR)
@@ -117,13 +119,15 @@ void xread(int fd, void *buf, size_t count)
         else
             ret = 0;
     }
+
     xread(fd, (char *)buf + ret, count - ret);
 }
 
 void xwrite(int fd, const void *buf, size_t count)
 {
     ssize_t ret = write(fd, buf, count);
-    if (ret == count) {
+
+    if (ret == (ssize_t)count) {
         return;
     } else if (ret == -1) {
         if (errno != EINTR)
@@ -131,6 +135,7 @@ void xwrite(int fd, const void *buf, size_t count)
         else
             ret = 0;
     }
+
     xwrite(fd, (char *)buf + ret, count - ret);
 }
 
@@ -226,7 +231,7 @@ int get_device_entry(const char *name, FILE *fp, Config *conf)
             }
             /* Key should be padded with trailing spaces */
             memset(conf->key, 0x20, sizeof(conf->key));
-            strncpy(conf->key, tok, keylen);
+            memcpy(conf->key, tok, keylen);
 
             conf->addr.sin_family = AF_INET;
             return 1;
@@ -332,12 +337,12 @@ Session authorize(int sock, const uint8_t key[])
     FD_SET(sock, &fds);
     ret = select(sock + 1, &fds, NULL, NULL, &tv);
 
-    if (ret == 1) {
-        memcpy(&s.key, key, sizeof(s.key));
-        return s;
-    }
+    if (ret != 1)
+        fatal("Authorization failed");
 
-    fatal("Authorization failed");
+    memcpy(&s.key, key, sizeof(s.key));
+
+    return s;
 }
 
 Status decrypt_status(const uint8_t statcryp[], Session s)
@@ -383,6 +388,9 @@ uint8_t map_action(unsigned int sock_num, uint8_t cur_state, const char *action)
     }
 
     fatal("Invalid action for socket %u: %s", sock_num, action);
+
+    /* Should never be here, but compiler is uncertain about this. */
+    return DONT_SWITCH;
 }
 
 void send_controls(int sock, Session s, Controls ctrl)
