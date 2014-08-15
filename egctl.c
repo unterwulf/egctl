@@ -91,8 +91,8 @@ void warn(const char *fmt, ...)
 #ifdef DEBUG
 void dbg4(const char *name, const uint8_t *buf)
 {
-    printf("%8s: 0x%02X 0x%02X 0x%02X 0x%02X\n",
-           name, buf[0], buf[1], buf[2], buf[3]);
+    fprintf(stderr, "%8s: 0x%02X 0x%02X 0x%02X 0x%02X\n",
+            name, buf[0], buf[1], buf[2], buf[3]);
 }
 #else
 #define dbg4(n,b)
