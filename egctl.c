@@ -485,7 +485,7 @@ void dump_status(Status st)
                 state = "unknown";
                 break;
         }
-        printf("socket %zu: %s\n", i+1, state);
+        printf("socket %zu - %s\n", i+1, state);
     }
 }
 
