@@ -190,6 +190,17 @@ char *consume_until_whitespace(char **str)
     return tok;
 }
 
+void consume_protocol(char **str)
+{
+    char *tok = consume_until_whitespace(str);
+
+    if (!tok)
+        fatal("Protocol isn't specified");
+
+    if (strcmp(tok, "pms20"))
+        fatal("Unknown protocol %s", tok);
+}
+
 in_addr_t consume_ip_address(char **str)
 {
     in_addr_t addr;
@@ -259,6 +270,7 @@ int get_device_entry(const char *name, FILE *fp, Config *conf)
         tabname = consume_until_whitespace(&line);
 
         if (tabname && !strcmp(tabname, name)) {
+            consume_protocol(&line);
             conf->addr.sin_addr.s_addr = consume_ip_address(&line);
             conf->addr.sin_port = consume_tcp_port(&line);
             conf->key = consume_key(&line);

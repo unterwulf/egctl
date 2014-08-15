@@ -3,7 +3,7 @@
 .\"
 .\" See the included COPYING file.
 .\"
-.TH egctl 1 "13 August 2014" egctl
+.TH egctl 1 "16 August 2014" egctl
 .SH NAME
 egctl \- EnerGenie EG-PMS-LAN control utility
 .SH SYNOPSIS
@@ -41,14 +41,18 @@ the utility commands. It is not necessary to be the same as
 in the web interface.
 .TP
 .B The second field
-IP address of device.
+Protocol. Reserved for future use. At the moment should always be 
+.BR pms20 .
 .TP
 .B The third field
-TCP port of device
+IP address of device.
+.TP
+.B The fourth field
+TCP port of device.
 .RB ( "Power Manager client port"
 in the web interface).
 .TP
-.B The fourth field
+.B The fifth field
 Password.
 .SH EXAMPLES
 Suppose a user has two EG-PMS-LAN devices configured as follows:
@@ -60,9 +64,9 @@ Suppose a user has two EG-PMS-LAN devices configured as follows:
 In order to control them using the utility the user needs to create a
 configuration file like the following:
 .IP
-eg1 192.168.0.10  5000 hackme
+eg1 pms20 192.168.0.10  5000 hackme
 .br
-eg2 192.168.10.10 5001 hackmesoftly
+eg2 pms20 192.168.10.10 5001 hackmesoftly
 .LP
 Now she can get status of the devices with commands
 .IP

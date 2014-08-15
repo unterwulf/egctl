@@ -1,7 +1,7 @@
 #
 # /etc/egtab: egctl configuration file
 #
-# Name      IP              Port    Password
-# --------- --------------- ------- --------
-# eg1       192.168.0.10    5000    hackme
+# Name      Protocol IP              Port    Password
+# --------- -------- --------------- ------- --------
+# eg1       pms20    192.168.0.10    5000    hackme
 #
