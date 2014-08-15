@@ -23,7 +23,6 @@
 #include <unistd.h>
 
 #define TASK_LEN            4
-#define RES_LEN             4
 #define STATCRYP_LEN        4
 #define CTRLCRYP_LEN        4
 #define KEY_LEN             8
@@ -43,8 +42,20 @@
 
 typedef struct
 {
+    uint8_t octets[KEY_LEN];
+} Key;
+
+typedef struct
+{
+    /* since the protocol is little-endian, low word comes first */
+    uint16_t loword;
+    uint16_t hiword;
+} __attribute__((__packed__)) Res;
+
+typedef struct
+{
     struct sockaddr_in addr;
-    uint8_t            key[KEY_LEN];
+    Key                key;
 } Config;
 
 typedef struct
@@ -55,7 +66,7 @@ typedef struct
 typedef struct
 {
     uint8_t task[TASK_LEN];
-    uint8_t key[KEY_LEN];
+    Key     key;
 } Session;
 
 const char *g_egtabs[] =
@@ -140,12 +151,26 @@ void xwrite(int fd, const void *buf, size_t count)
     xwrite(fd, (char *)buf + ret, count - ret);
 }
 
-char *get_token(char **str)
+char *get_personal_egtab_name(void)
+{
+    static char egtab[1024] = "/dev/null";
+    struct passwd *pwd = getpwuid(getuid());
+
+    if (pwd) {
+        snprintf(egtab, sizeof(egtab), "%s/.egtab", pwd->pw_dir);
+    } else {
+        warn("Unable to determine user home directory");
+    }
+
+    return egtab;
+}
+
+char *consume_until_whitespace(char **str)
 {
     char *tok = *str;
 
     if (tok) {
-        /* strip leading delimiters */
+        /* strip leading whitespaces */
         tok += strspn(tok, " \t");
 
         if (*tok == '\0') { /* no tokens */
@@ -165,32 +190,57 @@ char *get_token(char **str)
     return tok;
 }
 
-char *xget_token(char **str, const char *fmt, ...)
+in_addr_t consume_ip_address(char **str)
 {
-    char *tok = get_token(str);
+    in_addr_t addr;
+    char *tok = consume_until_whitespace(str);
 
-    if (!tok) {
-        va_list ap;
-        va_start(ap, fmt);
-        vfatal(fmt, ap);
-        va_end(ap);
+    if (!tok)
+        fatal("IP address isn't specified");
+
+    addr = inet_addr(tok);
+
+    if (addr == INADDR_NONE) {
+        /* It is ok that INADDR_NONE screens 255.255.255.255, since
+         * this address isn't appropriate here anyway. */
+        fatal("Invalid IP address specified");
     }
 
-    return tok;
+    return addr;
 }
 
-char *get_personal_egtab_name(void)
+in_port_t consume_tcp_port(char **str)
 {
-    static char egtab[1024] = "/dev/null";
-    struct passwd *pwd = getpwuid(getuid());
+    char *tok = consume_until_whitespace(str);
 
-    if (pwd) {
-        snprintf(egtab, sizeof(egtab), "%s/.egtab", pwd->pw_dir);
-    } else {
-        warn("Unable to determine user home directory");
+    if (!tok)
+        fatal("TCP port isn't specified");
+
+    return htons(atoi(tok));
+}
+
+Key consume_key(char **str)
+{
+    Key key;
+    size_t keylen;
+    char *tok = consume_until_whitespace(str);
+
+    if (!tok)
+        fatal("Password isn't specified");
+
+    keylen = strlen(tok);
+
+    if (keylen > KEY_LEN) {
+        warn("Password too long, only first %u chars "
+             "will be considered", KEY_LEN);
+        keylen = KEY_LEN;
     }
 
-    return egtab;
+    /* Key should be padded with trailing spaces */
+    memset(key.octets, 0x20, KEY_LEN);
+    memcpy(key.octets, tok, keylen);
+
+    return key;
 }
 
 int get_device_entry(const char *name, FILE *fp, Config *conf)
@@ -206,34 +256,12 @@ int get_device_entry(const char *name, FILE *fp, Config *conf)
 
         line[strcspn(line, "\n")] = '\0';
 
-        tabname = get_token(&line);
+        tabname = consume_until_whitespace(&line);
 
         if (tabname && !strcmp(tabname, name)) {
-            size_t keylen;
-            char *tok;
-
-            tok = xget_token(&line, "%s: IP address isn't specified", name);
-            conf->addr.sin_addr.s_addr = inet_addr(tok);
-            if (conf->addr.sin_addr.s_addr == INADDR_NONE) {
-                /* It is ok that INADDR_NONE screens 255.255.255.255, since
-                 * this address isn't appropriate here anyway. */
-                fatal("%s: invalid IP address specified", name);
-            }
-
-            tok = xget_token(&line, "%s: TCP port isn't specified", name);
-            conf->addr.sin_port = htons(atoi(tok));
-
-            tok = xget_token(&line, "%s: password isn't specified", name);
-            keylen = strlen(tok);
-            if (keylen > sizeof(conf->key)) {
-                warn("%s: password too long, only first %u chars "
-                     "will be considered", name, sizeof(conf->key));
-                keylen = sizeof(conf->key);
-            }
-            /* Key should be padded with trailing spaces */
-            memset(conf->key, 0x20, sizeof(conf->key));
-            memcpy(conf->key, tok, keylen);
-
+            conf->addr.sin_addr.s_addr = consume_ip_address(&line);
+            conf->addr.sin_port = consume_tcp_port(&line);
+            conf->key = consume_key(&line);
             conf->addr.sin_family = AF_INET;
             return 1;
         }
@@ -308,11 +336,10 @@ void establish_connection(int sock)
     fatal("Unable to establish connection with device");
 }
 
-Session authorize(int sock, const uint8_t key[])
+Session authorize(int sock, Key key)
 {
     Session s;
-    uint8_t res[RES_LEN];
-    uint16_t word;
+    Res res;
     fd_set fds;
     struct timeval tv = { 4, 0 };
     int ret;
@@ -320,13 +347,19 @@ Session authorize(int sock, const uint8_t key[])
     xread(sock, &s.task, sizeof(s.task));
     dbg4("task", s.task);
 
-    word = ((s.task[0]^key[2])*key[0])^(key[6]|(key[4]<<8))^s.task[2];
-    word = host_to_le16(word);
-    memcpy(res, &word, 2);
-    word = ((s.task[1]^key[3])*key[1])^(key[7]|(key[5]<<8))^s.task[3];
-    word = host_to_le16(word);
-    memcpy(&res[2], &word, 2);
-    dbg4("res", res);
+    res.loword = ((s.task[0] ^ key.octets[2]) * key.octets[0])
+                 ^ (key.octets[6] | (key.octets[4] << 8))
+                 ^ s.task[2];
+
+    res.loword = host_to_le16(res.loword);
+
+    res.hiword = ((s.task[1] ^ key.octets[3]) * key.octets[1])
+                 ^ (key.octets[7] | (key.octets[5] << 8))
+                 ^ s.task[3];
+
+    res.hiword = host_to_le16(res.hiword);
+
+    dbg4("res", (uint8_t *)&res);
 
     xwrite(sock, &res, sizeof(res));
 
@@ -341,7 +374,7 @@ Session authorize(int sock, const uint8_t key[])
     if (ret != 1)
         fatal("Authorization failed");
 
-    memcpy(&s.key, key, sizeof(s.key));
+    s.key = key;
 
     return s;
 }
@@ -353,7 +386,8 @@ Status decrypt_status(const uint8_t statcryp[], Session s)
 
     for (i = 0; i < SOCKET_COUNT; i++)
         st.socket[i] =
-            (((statcryp[3-i] - s.key[1])^s.key[0]) - s.task[3])^s.task[2];
+            (((statcryp[3-i] - s.key.octets[1]) ^ s.key.octets[0]) - s.task[3])
+            ^ s.task[2];
 
     return st;
 }
@@ -402,7 +436,8 @@ void send_controls(int sock, Session s, Controls ctrl)
     /* Encrypt controls */
     for (i = 0; i < SOCKET_COUNT; i++)
         ctrlcryp[i] =
-            (((ctrl.socket[3-i]^s.task[2]) + s.task[3])^s.key[0]) + s.key[1];
+            (((ctrl.socket[3-i] ^ s.task[2]) + s.task[3]) ^ s.key.octets[0])
+            + s.key.octets[1];
 
     xwrite(sock, &ctrlcryp, sizeof(ctrlcryp));
 }
