@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -97,12 +98,12 @@ void dbg4(const char *name, const uint8_t *buf)
 #define dbg4(n,b)
 #endif
 
-inline uint16_t swap16(uint16_t val)
+static inline uint16_t swap16(uint16_t val)
 {
     return ((val & 0xFF) << 8) | ((val & 0xFF00) >> 8);
 }
 
-inline uint16_t host_to_le16(uint16_t hostu16)
+static inline uint16_t host_to_le16(uint16_t hostu16)
 {
     return swap16(htons(hostu16));
 }
