@@ -10,7 +10,6 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
-#include <netinet/ip.h>
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -108,16 +107,6 @@ void dbg4(const char *name, const uint8_t *buf)
 #else
 #define dbg4(n,b)
 #endif
-
-static inline uint16_t swap16(uint16_t val)
-{
-    return ((val & 0xFF) << 8) | ((val & 0xFF00) >> 8);
-}
-
-static inline uint16_t host_to_le16(uint16_t hostu16)
-{
-    return swap16(htons(hostu16));
-}
 
 void xread(int fd, void *buf, size_t count)
 {
@@ -363,13 +352,13 @@ Session authorize(int sock, Key key)
                  ^ (key.octets[6] | (key.octets[4] << 8))
                  ^ s.task[2];
 
-    res.loword = host_to_le16(res.loword);
+    res.loword = htole16(res.loword);
 
     res.hiword = ((s.task[1] ^ key.octets[3]) * key.octets[1])
                  ^ (key.octets[7] | (key.octets[5] << 8))
                  ^ s.task[3];
 
-    res.hiword = host_to_le16(res.hiword);
+    res.hiword = htole16(res.hiword);
 
     dbg4("res", (uint8_t *)&res);
 
