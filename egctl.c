@@ -416,7 +416,7 @@ uint8_t map_action(unsigned int sock_num, uint8_t cur_state, const char *action)
             case STATE_ON_NO_VOLTAGE:
                 return SWITCH_OFF;
             default:
-                fprintf(stderr, "Cannot toggle socket %u", sock_num);
+                warn("Cannot toggle socket %u", sock_num);
                 return DONT_SWITCH;
         }
     } else if (!strcmp(action, "left")) {
