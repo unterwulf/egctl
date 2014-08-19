@@ -3,7 +3,7 @@
 .\"
 .\" See the included COPYING file.
 .\"
-.TH egctl 1 "16 August 2014" egctl
+.TH egctl 1 "19 August 2014" egctl
 .SH NAME
 egctl \- EnerGenie EG-PMS-LAN control utility
 .SH SYNOPSIS
@@ -12,20 +12,20 @@ egctl \- EnerGenie EG-PMS-LAN control utility
 .RI [ "S1 S2 S3 S4" ]
 .SH DESCRIPTION
 .B egctl
-is a program to control state of EnerGenie Programmable surge protector
+is a program to control the state of EnerGenie Programmable surge protector
 with LAN interface. It uses native EG-PMS-LAN data exchange protocol
-version 2.0 or 2.1, not HTTP. When executed with the only argument it dumps state of the
-specified device. If all five arguments are specified, it changes state
-of the device and dumps the new state.
+version 2.0 or 2.1, not HTTP. When executed with the only argument it dumps
+the state of the specified device. If all five arguments are specified, it
+changes the state of the device and dumps the new state.
 .br
 .SH OPTIONS
 .TP
 .I NAME
-Name of the device in configuration file. It has no relation with IP address
-or domain name.
+The name of the device to control (as it is specified in the configuration
+file). This name has no relation to the IP address or the domain name.
 .TP
 .I Sn
-An action to perform on
+The action to perform on
 .IR n \-th
 socket. Possible values are:
 .BR on ", " off ", " toggle " and " left .
@@ -77,13 +77,13 @@ eg1 pms20 192.168.0.10  5000 hackme
 .br
 eg2 pms20 192.168.10.10 5001 hackmesoftly
 .LP
-Now she can get status of the devices with commands
+Now she can get the status of the devices with commands
 .IP
 .B egctl eg1
 .br
 .B egctl eg2
 .LP
-and switch state of AC power sockets with a command like
+and switch the state of the AC power sockets with a command like
 .IP
 .B egctl eg1 on left left off
 .LP
@@ -94,6 +94,8 @@ user's configuration file
 .TP
 .I /etc/egtab
 system-wide configuration file
+.SH BUGS
+This program cannot modify the internal schedule of the device.
 .SH AUTHOR
 Written by Vitaly Sinilin <vs@kp4.ru>
 .SH TRADEMARKS
