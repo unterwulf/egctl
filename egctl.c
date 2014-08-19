@@ -39,6 +39,20 @@
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
+typedef enum
+{
+    ACTION_ON,
+    ACTION_OFF,
+    ACTION_TOGGLE,
+    ACTION_LEFT,
+    ACTION_INVALID
+} Action;
+
+typedef struct
+{
+    Action socket[SOCKET_COUNT];
+} Actions;
+
 typedef struct
 {
     uint8_t octets[KEY_LEN];
@@ -401,32 +415,73 @@ Status recv_status(int sock, Session s)
     return decrypt_status(statcryp, s);
 }
 
-uint8_t map_action(unsigned int sock_num, uint8_t cur_state, const char *action)
+Action str_to_action(const char *action)
 {
-    if (!strcmp(action, "on")) {
-        return SWITCH_ON;
-    } else if (!strcmp(action, "off")) {
-        return SWITCH_OFF;
-    } else if (!strcmp(action, "toggle")) {
-        switch (cur_state) {
-            case STATE_OFF:
-            case STATE_OFF_VOLTAGE:
-                return SWITCH_ON;
-            case STATE_ON:
-            case STATE_ON_NO_VOLTAGE:
-                return SWITCH_OFF;
-            default:
-                warn("Cannot toggle socket %u", sock_num);
-                return DONT_SWITCH;
-        }
-    } else if (!strcmp(action, "left")) {
-        return DONT_SWITCH;
+    if (!strcmp(action, "on"))
+        return ACTION_ON;
+    else if (!strcmp(action, "off"))
+        return ACTION_OFF;
+    else if (!strcmp(action, "toggle"))
+        return ACTION_TOGGLE;
+    else if (!strcmp(action, "left"))
+        return ACTION_LEFT;
+
+    return ACTION_INVALID;
+}
+
+Actions argv_to_actions(char *argv[])
+{
+    Actions actions;
+    size_t i;
+
+    for (i = 0; i < SOCKET_COUNT; i++) {
+        Action action = str_to_action(argv[i]);
+
+        if (action == ACTION_INVALID)
+            fatal("Invalid action for socket %zu: %s", i+1, argv[i]);
+
+        actions.socket[i] = action;
     }
 
-    fatal("Invalid action for socket %u: %s", sock_num, action);
+    return actions;
+}
 
-    /* Should never be here, but compiler is uncertain about this. */
-    return DONT_SWITCH;
+Controls construct_controls(Status status, Actions actions)
+{
+    Controls ctrl;
+    size_t i;
+
+    for (i = 0; i < SOCKET_COUNT; i++) {
+        switch (actions.socket[i]) {
+            case ACTION_ON:
+                ctrl.socket[i] = SWITCH_ON;
+                break;
+            case ACTION_OFF:
+                ctrl.socket[i] = SWITCH_OFF;
+                break;
+            case ACTION_TOGGLE:
+                switch (status.socket[i]) {
+                    case STATE_ON:
+                    case STATE_ON_NO_VOLTAGE:
+                        ctrl.socket[i] = SWITCH_OFF;
+                        break;
+                    case STATE_OFF:
+                    case STATE_OFF_VOLTAGE:
+                        ctrl.socket[i] = SWITCH_ON;
+                        break;
+                    default:
+                        warn("Cannot toggle socket %zu", i+1);
+                        ctrl.socket[i] = DONT_SWITCH;
+                        break;
+                }
+                break;
+            default:
+            case ACTION_LEFT:
+                ctrl.socket[i] = DONT_SWITCH;
+        }
+    }
+
+    return ctrl;
 }
 
 void send_controls(int sock, Session s, Controls ctrl)
@@ -496,13 +551,9 @@ int main(int argc, char *argv[])
     sess = authorize(sock, conf.key);
 
     if (argc == 6) {
-        Controls ctrl;
-        size_t i;
+        Actions act = argv_to_actions(argv+2);
         Status status = recv_status(sock, sess);
-
-        for (i = 0; i < SOCKET_COUNT; i++)
-            ctrl.socket[i] = map_action(i+1, status.socket[i], argv[i+2]);
-
+        Controls ctrl = construct_controls(status, act);
         send_controls(sock, sess, ctrl);
     }
 
