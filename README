@@ -1,0 +1,24 @@
+egctl, Copyright (c) 2014 Vitaly Sinilin <vs@kp4.ru>
+Published under the terms of the MIT License.
+
+egctl is a program to control the state of EnerGenie Programmable
+surge protector with LAN interface. It uses native EG-PMS-LAN data
+exchange protocol version 2.0 or 2.1, not HTTP.
+
+
+INSTALLATION
+
+   make
+   make install
+
+
+SUPPORTED DEVICES
+
+Currently the following devices are supported:
+- EG-PMS-LAN
+- EG-PMS2-LAN
+
+
+THANKS TO
+
+Mārtiņš Brīvnieks for testing with EG-PMS2-LAN.
