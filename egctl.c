@@ -451,31 +451,27 @@ void close_session(int sock)
     xwrite(sock, "\x11", 1);
 }
 
+const char *get_state_str(uint8_t state)
+{
+    switch (state) {
+        case STATE_ON:
+            return "on";
+        case STATE_ON_NO_VOLTAGE:
+            return "on (no voltage!)";
+        case STATE_OFF:
+            return "off";
+        case STATE_OFF_VOLTAGE:
+            return "off (VOLTAGE IS PRESENT!)";
+    }
+    return "unknown";
+}
+
 void dump_status(Status st)
 {
     size_t i;
-    const char *state;
 
-    for (i = 0; i < SOCKET_COUNT; i++) {
-        switch (st.socket[i]) {
-            case STATE_ON:
-                state = "on";
-                break;
-            case STATE_ON_NO_VOLTAGE:
-                state = "on (no voltage!)";
-                break;
-            case STATE_OFF:
-                state = "off";
-                break;
-            case STATE_OFF_VOLTAGE:
-                state = "off (VOLTAGE IS PRESENT!)";
-                break;
-            default:
-                state = "unknown";
-                break;
-        }
-        printf("socket %zu - %s\n", i+1, state);
-    }
+    for (i = 0; i < SOCKET_COUNT; i++)
+        printf("socket %zu - %s\n", i+1, get_state_str(st.socket[i]));
 }
 
 int main(int argc, char *argv[])
