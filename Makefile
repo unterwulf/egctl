@@ -13,8 +13,11 @@ endif
 DESTDIR =
 PREFIX = /usr/local
 
-bindir = $(DESTDIR)$(PREFIX)/bin
-mandir = $(DESTDIR)$(PREFIX)/share/man
+bindir = $(PREFIX)/bin
+mandir = $(PREFIX)/share/man
+
+override bindir := $(DESTDIR)$(bindir)
+override mandir := $(DESTDIR)$(mandir)
 
 all: egctl
 
