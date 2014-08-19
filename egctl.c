@@ -31,6 +31,11 @@
 #define STATE_OFF           0x22
 #define STATE_OFF_VOLTAGE   0x21
 
+#define STATE_INVALID       0xFF /* for internal use */
+
+#define V21_STATE_ON        0x41
+#define V21_STATE_OFF       0x82
+
 #define SWITCH_ON           0x01
 #define SWITCH_OFF          0x02
 #define DONT_SWITCH         0x04
@@ -38,6 +43,12 @@
 #define SOCKET_COUNT 4      /* AC power sockets, not network ones ;) */
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
+typedef enum
+{
+    EG_PROTO_V20,
+    EG_PROTO_V21
+} Protocol;
 
 typedef enum
 {
@@ -68,6 +79,7 @@ typedef struct
 typedef struct
 {
     struct sockaddr_in addr;
+    Protocol           proto;
     Key                key;
 } Config;
 
@@ -193,15 +205,22 @@ char *consume_until_whitespace(char **str)
     return tok;
 }
 
-void consume_protocol(char **str)
+Protocol consume_protocol(char **str)
 {
+    Protocol proto;
     char *tok = consume_until_whitespace(str);
 
     if (!tok)
         fatal("Protocol isn't specified");
 
-    if (strcmp(tok, "pms20"))
+    if (!strcmp(tok, "pms20"))
+        proto = EG_PROTO_V20;
+    else if (!strcmp(tok, "pms21"))
+        proto = EG_PROTO_V21;
+    else
         fatal("Unknown protocol %s", tok);
+
+    return proto;
 }
 
 in_addr_t consume_ip_address(char **str)
@@ -273,7 +292,7 @@ int get_device_entry(const char *name, FILE *fp, Config *conf)
         tabname = consume_until_whitespace(&line);
 
         if (tabname && !strcmp(tabname, name)) {
-            consume_protocol(&line);
+            conf->proto = consume_protocol(&line);
             conf->addr.sin_addr.s_addr = consume_ip_address(&line);
             conf->addr.sin_port = consume_tcp_port(&line);
             conf->key = consume_key(&line);
@@ -407,12 +426,44 @@ Status decrypt_status(const uint8_t statcryp[], Session s)
     return st;
 }
 
-Status recv_status(int sock, Session s)
+uint8_t convert_v21_state(uint8_t state)
 {
+    switch (state) {
+        case V21_STATE_ON:
+            return STATE_ON;
+        case V21_STATE_OFF:
+            return STATE_OFF;
+    }
+    return STATE_INVALID;
+}
+
+Status convert_v21_status(Status st)
+{
+    size_t i;
+
+    for (i = 0; i < SOCKET_COUNT; i++)
+        st.socket[i] = convert_v21_state(st.socket[i]);
+
+    return st;
+}
+
+Status recv_status(int sock, Session s, Protocol proto)
+{
+    Status st;
     uint8_t statcryp[STATCRYP_LEN];
     xread(sock, &statcryp, sizeof(statcryp));
     dbg4("statcryp", statcryp);
-    return decrypt_status(statcryp, s);
+    st = decrypt_status(statcryp, s);
+
+    /* Since the only difference between versions 2.0 and 2.1 of the
+     * subset of the protocol that we use is the state constants, all
+     * we need to do to support version 2.1 is just to map 2.1
+     * constants to the equivalent 2.0 ones. */
+
+    if (proto == EG_PROTO_V21)
+        st = convert_v21_status(st);
+
+    return st;
 }
 
 Action str_to_action(const char *action)
@@ -552,12 +603,12 @@ int main(int argc, char *argv[])
 
     if (argc == 6) {
         Actions act = argv_to_actions(argv+2);
-        Status status = recv_status(sock, sess);
+        Status status = recv_status(sock, sess, conf.proto);
         Controls ctrl = construct_controls(status, act);
         send_controls(sock, sess, ctrl);
     }
 
-    dump_status(recv_status(sock, sess));
+    dump_status(recv_status(sock, sess, conf.proto));
 
     close_session(sock);
     close(sock);

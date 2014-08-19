@@ -14,7 +14,7 @@ egctl \- EnerGenie EG-PMS-LAN control utility
 .B egctl
 is a program to control state of EnerGenie Programmable surge protector
 with LAN interface. It uses native EG-PMS-LAN data exchange protocol
-version 2.0, not HTTP. When executed with the only argument it dumps state of the
+version 2.0 or 2.1, not HTTP. When executed with the only argument it dumps state of the
 specified device. If all five arguments are specified, it changes state
 of the device and dumps the new state.
 .br
@@ -41,8 +41,8 @@ the utility commands. It is not necessary to be the same as
 in the web interface.
 .TP
 .B The second field
-Protocol. Reserved for future use. At the moment should always be 
-.BR pms20 .
+Protocol. Supported protocols are:
+.BR pms20 " and " pms21.
 .TP
 .B The third field
 IP address of device.
@@ -54,6 +54,15 @@ in the web interface).
 .TP
 .B The fifth field
 Password.
+.SH SUPPORTED DEVICES
+.TS
+lB lB
+_	_
+l l.
+Device	Protocol
+EG-PMS-LAN	pms20
+EG-PMS2-LAN	pms21
+.TE
 .SH EXAMPLES
 Suppose a user has two EG-PMS-LAN devices configured as follows:
 .IP
