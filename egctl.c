@@ -483,7 +483,6 @@ int main(int argc, char *argv[])
     int sock;
     Config conf;
     Session sess;
-    Status status;
 
     if (argc != 2 && argc != 6) {
         fatal("egctl 0.1: EnerGenie EG-PMS-LAN control utility\n\n"
@@ -499,22 +498,19 @@ int main(int argc, char *argv[])
     sock = create_socket(&conf.addr);
     establish_connection(sock);
     sess = authorize(sock, conf.key);
-    status = recv_status(sock, sess);
 
-    if (argc == 2) {
-        dump_status(status);
-    } else if (argc == 6) {
+    if (argc == 6) {
         Controls ctrl;
         size_t i;
+        Status status = recv_status(sock, sess);
 
         for (i = 0; i < SOCKET_COUNT; i++)
             ctrl.socket[i] = map_action(i+1, status.socket[i], argv[i+2]);
 
         send_controls(sock, sess, ctrl);
-
-        /* Dump updated status */
-        dump_status(recv_status(sock, sess));
     }
+
+    dump_status(recv_status(sock, sess));
 
     close_session(sock);
     close(sock);
