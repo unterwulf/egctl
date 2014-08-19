@@ -455,7 +455,7 @@ Status recv_status(int sock, Session s, Protocol proto)
     dbg4("statcryp", statcryp);
     st = decrypt_status(statcryp, s);
 
-    /* Since the only difference between versions 2.0 and 2.1 of the
+    /* Since the only difference between versions 2.0 and 2.1 in the
      * subset of the protocol that we use is the state constants, all
      * we need to do to support version 2.1 is just to map 2.1
      * constants to the equivalent 2.0 ones. */
