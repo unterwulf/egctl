@@ -497,6 +497,20 @@ Actions argv_to_actions(char *argv[])
     return actions;
 }
 
+uint8_t get_toggle_ctrl(uint8_t state)
+{
+    switch (state) {
+        case STATE_ON:
+        case STATE_ON_NO_VOLTAGE:
+            return SWITCH_OFF;
+        case STATE_OFF:
+        case STATE_OFF_VOLTAGE:
+            return SWITCH_ON;
+    }
+
+    return DONT_SWITCH;
+}
+
 Controls construct_controls(Status status, Actions actions)
 {
     Controls ctrl;
@@ -511,20 +525,9 @@ Controls construct_controls(Status status, Actions actions)
                 ctrl.socket[i] = SWITCH_OFF;
                 break;
             case ACTION_TOGGLE:
-                switch (status.socket[i]) {
-                    case STATE_ON:
-                    case STATE_ON_NO_VOLTAGE:
-                        ctrl.socket[i] = SWITCH_OFF;
-                        break;
-                    case STATE_OFF:
-                    case STATE_OFF_VOLTAGE:
-                        ctrl.socket[i] = SWITCH_ON;
-                        break;
-                    default:
-                        warn("Cannot toggle socket %zu", i+1);
-                        ctrl.socket[i] = DONT_SWITCH;
-                        break;
-                }
+                ctrl.socket[i] = get_toggle_ctrl(status.socket[i]);
+                if (ctrl.socket[i] == DONT_SWITCH)
+                    warn("Cannot toggle socket %zu", i+1);
                 break;
             default:
             case ACTION_LEFT:
