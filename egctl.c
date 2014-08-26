@@ -346,10 +346,18 @@ int create_socket(const struct sockaddr_in *addr)
     return sock;
 }
 
+int wait_for_data_in_sock(int sock, struct timeval *timeout)
+{
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(sock, &fds);
+
+    return (select(sock + 1, &fds, NULL, NULL, timeout) == 1);
+}
+
 void establish_connection(int sock)
 {
-    int i, ret;
-    fd_set fds;
+    int i;
 
     /* When the device is still on timeout from a previous session
      * it doesn't respond to the first Start condition packet. So
@@ -359,11 +367,8 @@ void establish_connection(int sock)
         struct timeval tv = { 0, 125000 };
 
         xwrite(sock, "\x11", 1);
-        FD_ZERO(&fds);
-        FD_SET(sock, &fds);
-        ret = select(sock + 1, &fds, NULL, NULL, &tv);
 
-        if (ret == 1)
+        if (wait_for_data_in_sock(sock, &tv))
             return;
     }
 
@@ -374,9 +379,7 @@ Session authorize(int sock, Key key)
 {
     Session s;
     Res res;
-    fd_set fds;
     struct timeval tv = { 4, 0 };
-    int ret;
 
     xread(sock, &s.task, sizeof(s.task));
     dbg4("task", s.task);
@@ -401,11 +404,7 @@ Session authorize(int sock, Key key)
      * authorization. So timeout is the only way to find out that
      * authorization hasn't been successful. */
 
-    FD_ZERO(&fds);
-    FD_SET(sock, &fds);
-    ret = select(sock + 1, &fds, NULL, NULL, &tv);
-
-    if (ret != 1)
+    if (!wait_for_data_in_sock(sock, &tv))
         fatal("Authorization failed");
 
     s.key = key;
