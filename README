@@ -16,9 +16,11 @@ SUPPORTED DEVICES
 
 Currently the following devices are supported:
 - EG-PMS-LAN
+- EG-PM2-LAN
 - EG-PMS2-LAN
 
 
 THANKS TO
 
 Mārtiņš Brīvnieks for testing with EG-PMS2-LAN.
+Philipp Kolmann for reporting about compatibility with EG-PM2-LAN.

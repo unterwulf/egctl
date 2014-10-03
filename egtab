@@ -4,5 +4,6 @@
 # Name      Protocol IP              Port    Password
 # --------- -------- --------------- ------- --------
 # egpms     pms20    192.168.0.10    5000    hackme
-# egpms2    pms21    192.168.0.11    5000    hackme
+# egpm2     pms21    192.168.0.11    5000    hackme
+# egpms2    pms21    192.168.0.12    5000    hackme
 #
