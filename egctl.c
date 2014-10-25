@@ -163,7 +163,7 @@ void xwrite(int fd, const void *buf, size_t count)
 
 char *get_personal_egtab_name(void)
 {
-    static char egtab[PATH_MAX] = "/dev/null";
+    static char egtab[PATH_MAX] = "";
     char *home = getenv("HOME");
 
     if (!home) {
