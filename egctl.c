@@ -9,6 +9,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <limits.h>
 #include <netinet/in.h>
 #include <pwd.h>
 #include <stdarg.h>
@@ -168,11 +169,17 @@ void xwrite(int fd, const void *buf, size_t count)
 
 char *get_personal_egtab_name(void)
 {
-    static char egtab[1024] = "/dev/null";
-    struct passwd *pwd = getpwuid(getuid());
+    static char egtab[PATH_MAX] = "/dev/null";
+    char *home = getenv("HOME");
 
-    if (pwd) {
-        snprintf(egtab, sizeof(egtab), "%s/.egtab", pwd->pw_dir);
+    if (!home) {
+        struct passwd *pwd = getpwuid(getuid());
+        if (pwd)
+            home = pwd->pw_dir;
+    }
+
+    if (home) {
+        snprintf(egtab, sizeof(egtab), "%s/.egtab", home);
     } else {
         warn("Unable to determine user home directory");
     }
