@@ -95,12 +95,6 @@ typedef struct
     Key     key;
 } Session;
 
-const char *g_egtabs[] =
-{
-    NULL,           /* placeholder for ~/.egtab */
-    "/etc/egtab"
-};
-
 void vfatal(const char *fmt, va_list ap)
 {
     vfprintf(stderr, fmt, ap);
@@ -317,9 +311,14 @@ Config get_device_conf(const char *name)
     int opened_tabs = 0;
     int ent_found = 0;
     size_t i;
+    const char *egtabs[] =
+    {
+        get_personal_egtab_name(),
+        "/etc/egtab"
+    };
 
-    for (i = 0; !ent_found && i < ARRAY_SIZE(g_egtabs); i++) {
-        FILE *fp = fopen(g_egtabs[i], "r");
+    for (i = 0; !ent_found && i < ARRAY_SIZE(egtabs); i++) {
+        FILE *fp = fopen(egtabs[i], "r");
 
         if (fp != NULL) {
             opened_tabs++;
@@ -602,8 +601,6 @@ int main(int argc, char *argv[])
               "  Sn is an action to perform on n-th socket: "
               "on, off, toggle or left");
     }
-
-    g_egtabs[0] = get_personal_egtab_name();
 
     conf = get_device_conf(argv[1]);
     sock = create_socket(&conf.addr);
