@@ -1,7 +1,7 @@
 /*
  * egctl - EnerGenie EM-PMS-LAN control utility
  *
- * Copyright (c) 2014 Vitaly Sinilin <vs@kp4.ru>
+ * Copyright (c) 2014, 2017 Vitaly Sinilin <vs@kp4.ru>
  *
  * Published under the terms of the MIT License,
  * see the included COPYING file.
@@ -37,6 +37,9 @@
 #define V21_STATE_ON        0x41
 #define V21_STATE_OFF       0x82
 
+#define WLAN_STATE_ON       0x51
+#define WLAN_STATE_OFF      0x92
+
 #define SWITCH_ON           0x01
 #define SWITCH_OFF          0x02
 #define DONT_SWITCH         0x04
@@ -48,7 +51,8 @@
 typedef enum
 {
     EG_PROTO_V20,
-    EG_PROTO_V21
+    EG_PROTO_V21,
+    EG_PROTO_WLAN
 } Protocol;
 
 typedef enum
@@ -218,6 +222,8 @@ Protocol consume_protocol(char **str)
         proto = EG_PROTO_V20;
     else if (!strcmp(tok, "pms21"))
         proto = EG_PROTO_V21;
+    else if (!strcmp(tok, "pmswlan"))
+        proto = EG_PROTO_WLAN;
     else
         fatal("Unknown protocol %s", tok);
 
@@ -442,12 +448,23 @@ uint8_t convert_v21_state(uint8_t state)
     return STATE_INVALID;
 }
 
-Status convert_v21_status(Status st)
+uint8_t convert_wlan_state(uint8_t state)
+{
+    switch (state) {
+        case WLAN_STATE_ON:
+            return STATE_ON;
+        case WLAN_STATE_OFF:
+            return STATE_OFF;
+    }
+    return STATE_INVALID;
+}
+
+Status convert_status(Status st, uint8_t (*convert_state_fn)(uint8_t))
 {
     size_t i;
 
     for (i = 0; i < SOCKET_COUNT; i++)
-        st.socket[i] = convert_v21_state(st.socket[i]);
+        st.socket[i] = convert_state_fn(st.socket[i]);
 
     return st;
 }
@@ -460,13 +477,15 @@ Status recv_status(int sock, Session s, Protocol proto)
     dbg4("statcryp", statcryp);
     st = decrypt_status(statcryp, s);
 
-    /* Since the only difference between versions 2.0 and 2.1 in the
-     * subset of the protocol that we use is the state constants, all
-     * we need to do to support version 2.1 is just to map 2.1
-     * constants to the equivalent 2.0 ones. */
+    /* Since the only difference between supported protocol versions (in
+     * the subset of the protocol that we implement) is in state constants,
+     * we just map all state constants to their equivalent ones from
+     * protocol version 2.0. */
 
     if (proto == EG_PROTO_V21)
-        st = convert_v21_status(st);
+        st = convert_status(st, convert_v21_state);
+    else if (proto == EG_PROTO_WLAN)
+        st = convert_status(st, convert_wlan_state);
 
     return st;
 }
