@@ -344,6 +344,7 @@ Config get_device_conf(const char *name)
 
 int create_socket(const struct sockaddr_in *addr)
 {
+    struct timeval timeout;
     int ret;
     int sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
@@ -354,6 +355,18 @@ int create_socket(const struct sockaddr_in *addr)
 
     if (ret != 0)
         fatal("Unable to connect: %s", strerror(errno));
+
+    timeout.tv_sec = 10;
+    timeout.tv_usec = 0;
+    ret = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,
+		    (char *)&timeout, sizeof(timeout));
+    if (ret != 0)
+        fatal("Unable to set socket options: %s", strerror(errno));
+
+    ret = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,
+		    (char *)&timeout, sizeof(timeout));
+    if (ret != 0)
+        fatal("Unable to set socket option: %s", strerror(errno));
 
     return sock;
 }
