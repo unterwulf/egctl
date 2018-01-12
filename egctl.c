@@ -537,7 +537,7 @@ Actions argv_single_to_action(char *argv[])
     for (i = 0; i < SOCKET_COUNT; i++) {
         actions.socket[i] = ACTION_LEFT;
     }
-    res = - strtoimax(argv[0], &err, 10);  /* returns 0 on invalid, -1...-4 on -1...-4 */
+    res = strtoimax(argv[0], &err, 10);  /* returns 0 on invalid */
     if ( res < 1 || res > SOCKET_COUNT ) 
 	fatal("Invalid socket number %i", res);
     Action action = str_to_action(argv[1]);	 
@@ -652,7 +652,7 @@ int main(int argc, char *argv[])
     if (argc != 2 && argc != 4 && argc != 6) {
         fatal("egctl 0.1: EnerGenie EG-PMS-LAN control utility\n\n"
               "Usage: egctl NAME [S1 S2 S3 S4]\n"
-	      "   or: egctl NAME -SOCK Sn\n"
+	      "   or: egctl NAME SOCK Sn\n"
               "  NAME is the name of the device in the egtab file\n"
 	      "  SOCK is a socket number in the 2ndvarint of the command\n"
               "  Sn is an action to perform on n-th socket: "
