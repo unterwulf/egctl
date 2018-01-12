@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <inttypes.h>
 
 #define TASK_LEN            4
 #define STATCRYP_LEN        4
@@ -492,13 +493,13 @@ Status recv_status(int sock, Session s, Protocol proto)
 
 Action str_to_action(const char *action)
 {
-    if (!strcmp(action, "on"))
+    if (!strcmp(action, "on") || !strcmp(action, "1"))
         return ACTION_ON;
-    else if (!strcmp(action, "off"))
+    else if (!strcmp(action, "off") || !strcmp(action, "0"))
         return ACTION_OFF;
-    else if (!strcmp(action, "toggle"))
+    else if (!strcmp(action, "toggle") || !strcmp(action, "+"))
         return ACTION_TOGGLE;
-    else if (!strcmp(action, "left"))
+    else if (!strcmp(action, "left") || !strcmp(action, "="))
         return ACTION_LEFT;
 
     return ACTION_INVALID;
@@ -517,6 +518,34 @@ Actions argv_to_actions(char *argv[])
 
         actions.socket[i] = action;
     }
+
+    return actions;
+}
+
+Actions argv_single_to_action(char *argv[])
+{
+    Actions actions;
+    size_t i;
+    int res;
+    char *err;
+
+/* support for argv variant $0 -{socket} {action}
+ *
+ * first, set all to HOLD
+ * then,  apply acttion to the desired socket
+ */
+    for (i = 0; i < SOCKET_COUNT; i++) {
+        actions.socket[i] = ACTION_LEFT;
+    }
+    res = - strtoimax(argv[0], &err, 10);  /* returns 0 on invalid, -1...-4 on -1...-4 */
+    if ( res < 1 || res > SOCKET_COUNT ) {
+	fatal("Invalid socket number %i", res);
+    }
+    Action action = str_to_action(argv[1]);	 
+    if (action == ACTION_INVALID) {
+        fatal("Invalid action for socket %zu: %s", res, argv[1]);
+    }
+    actions.socket[ res - 1 ] = action;
 
     return actions;
 }
@@ -613,12 +642,14 @@ int main(int argc, char *argv[])
     Config conf;
     Session sess;
 
-    if (argc != 2 && argc != 6) {
+    if (argc != 2 && argc != 4 && argc != 6) {
         fatal("egctl 0.1: EnerGenie EG-PMS-LAN control utility\n\n"
               "Usage: egctl NAME [S1 S2 S3 S4]\n"
+	      "   or: egctl NAME -SOCK Sn\n"
               "  NAME is the name of the device in the egtab file\n"
+	      "  SOCK is a socket number in the 2ndvarint of the command\n"
               "  Sn is an action to perform on n-th socket: "
-              "on, off, toggle or left");
+              "on|1, off|0, toggle|+ or left|=");
     }
 
     conf = get_device_conf(argv[1]);
@@ -626,8 +657,8 @@ int main(int argc, char *argv[])
     establish_connection(sock);
     sess = authorize(sock, conf.key);
 
-    if (argc == 6) {
-        Actions act = argv_to_actions(argv+2);
+    if (argc == 6 || argc == 4) {
+        Actions act = (argc==6) ? argv_to_actions(argv+2) : argv_single_to_action(argv+2);
         Status status = recv_status(sock, sess, conf.proto);
         Controls ctrl = construct_controls(status, act);
         send_controls(sock, sess, ctrl);
