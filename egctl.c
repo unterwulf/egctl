@@ -538,13 +538,11 @@ Actions argv_single_to_action(char *argv[])
         actions.socket[i] = ACTION_LEFT;
     }
     res = - strtoimax(argv[0], &err, 10);  /* returns 0 on invalid, -1...-4 on -1...-4 */
-    if ( res < 1 || res > SOCKET_COUNT ) {
+    if ( res < 1 || res > SOCKET_COUNT ) 
 	fatal("Invalid socket number %i", res);
-    }
     Action action = str_to_action(argv[1]);	 
-    if (action == ACTION_INVALID) {
+    if (action == ACTION_INVALID) 
         fatal("Invalid action for socket %zu: %s", res, argv[1]);
-    }
     actions.socket[ res - 1 ] = action;
 
     return actions;
@@ -636,6 +634,15 @@ void dump_status(Status st)
         printf("socket %zu - %s\n", i+1, get_state_str(st.socket[i]));
 }
 
+void dump_json(Status st)
+{
+    size_t i;
+    for (i = 0; i < SOCKET_COUNT; i++)
+        printf("%s%zu:\"%s\"", (i==0) ? "{ " : ", ", i+1, get_state_str(st.socket[i]));
+    printf(" }\n");
+}
+
+
 int main(int argc, char *argv[])
 {
     int sock;
@@ -664,7 +671,10 @@ int main(int argc, char *argv[])
         send_controls(sock, sess, ctrl);
     }
 
-    dump_status(recv_status(sock, sess, conf.proto));
+    Status st = recv_status(sock, sess, conf.proto);
+    dump_status(st);
+    printf("JSON=");
+    dump_json(st);
 
     close_session(sock);
     close(sock);
