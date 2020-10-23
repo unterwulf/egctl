@@ -6,22 +6,27 @@ surge protector with LAN/WLAN interface. It uses native data exchange
 protocol of the device, not HTTP.
 
 
-INSTALLATION
+## Installation
 
-   make
-   make install
+    make
+    make install
 
+will install in /usr/local. To use another prefix:
 
-SUPPORTED DEVICES
+    PREFIX=/usr make install
+
+The Makefile also understands `DESTDIR`.
+
+## Supported devices
 
 Currently the following devices are supported:
-- EG-PMS-LAN
-- EG-PM2-LAN
-- EG-PMS2-LAN
-- EG-PMS-WLAN
+* EG-PMS-LAN
+* EG-PM2-LAN
+* EG-PMS2-LAN
+* EG-PMS-WLAN
 
 
-THANKS TO
+## Thanks to
 
 Mārtiņš Brīvnieks for testing with EG-PMS2-LAN.
 Philipp Kolmann for reporting about compatibility with EG-PM2-LAN.
