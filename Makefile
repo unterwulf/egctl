@@ -10,8 +10,8 @@ ifdef DEBUG
 	CFLAGS += -g -DDEBUG
 endif
 
-DESTDIR =
-PREFIX = /usr/local
+DESTDIR ?=
+PREFIX ?= /usr/local
 
 bindir = $(PREFIX)/bin
 mandir = $(PREFIX)/share/man
