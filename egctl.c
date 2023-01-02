@@ -1,7 +1,7 @@
 /*
  * egctl - EnerGenie EM-PMS-LAN control utility
  *
- * Copyright (c) 2014, 2017 Vitaly Sinilin <vs@kp4.ru>
+ * Copyright (c) 2014, 2017, 2023 Vitaly Sinilin <vs@kp4.ru>
  *
  * Published under the terms of the MIT License,
  * see the included COPYING file.
@@ -262,23 +262,23 @@ in_port_t consume_tcp_port(char **str)
 Key consume_key(char **str)
 {
     Key key;
-    size_t keylen;
+
+    /* Key should be padded with trailing spaces. */
+    memset(key.octets, 0x20, KEY_LEN);
+
     char *tok = consume_until_whitespace(str);
 
-    if (!tok)
-        fatal("Password isn't specified");
+    if (tok) {
+        size_t keylen = strlen(tok);
 
-    keylen = strlen(tok);
+        if (keylen > KEY_LEN) {
+            warn("Password too long, only first %u chars "
+                 "will be considered", KEY_LEN);
+            keylen = KEY_LEN;
+        }
 
-    if (keylen > KEY_LEN) {
-        warn("Password too long, only first %u chars "
-             "will be considered", KEY_LEN);
-        keylen = KEY_LEN;
+        memcpy(key.octets, tok, keylen);
     }
-
-    /* Key should be padded with trailing spaces */
-    memset(key.octets, 0x20, KEY_LEN);
-    memcpy(key.octets, tok, keylen);
 
     return key;
 }
