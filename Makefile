@@ -3,8 +3,9 @@
 #
 # See the included COPYING file.
 #
+VERSION = 0.2+git
 
-CFLAGS = -W -Wall -D_BSD_SOURCE -D_DEFAULT_SOURCE
+CFLAGS = -W -Wall -D_BSD_SOURCE -D_DEFAULT_SOURCE -DVERSION_STR=\"$(VERSION)\"
 
 ifdef DEBUG
 	CFLAGS += -g -DDEBUG
