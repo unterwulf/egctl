@@ -9,7 +9,9 @@ protocol of the device, not HTTP.
 INSTALLATION
 
    make
-   make install
+   make PREFIX=/usr install
+
+The makefile also understands DESTDIR for a staged installation.
 
 
 SUPPORTED DEVICES
@@ -26,3 +28,4 @@ THANKS TO
 Mārtiņš Brīvnieks for testing with EG-PMS2-LAN.
 Philipp Kolmann for reporting about compatibility with EG-PM2-LAN.
 joanandk for investigation of the EG-PMS-WLAN protocol.
+Wolfram Sang for vigilance.
