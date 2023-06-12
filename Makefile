@@ -4,7 +4,7 @@
 # See the included COPYING file.
 #
 
-CFLAGS = -W -Wall -D_BSD_SOURCE
+CFLAGS = -W -Wall -D_BSD_SOURCE -D_DEFAULT_SOURCE
 
 ifdef DEBUG
 	CFLAGS += -g -DDEBUG

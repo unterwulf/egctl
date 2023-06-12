@@ -1,5 +1,12 @@
 egctl NEWS -- History of user-visible changes
 
+Version 0.3
+
+Fixes
+-----
+
+ * Fix warning when building with glibc >= 2.19
+
 Version 0.2
 
 New Features
