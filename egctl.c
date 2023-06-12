@@ -614,7 +614,7 @@ int main(int argc, char *argv[])
     Session sess;
 
     if (argc != 2 && argc != 6) {
-        fatal("egctl 0.1: EnerGenie EG-PMS-LAN control utility\n\n"
+        fatal("egctl 0.3: EnerGenie EG-PMS-LAN control utility\n\n"
               "Usage: egctl NAME [S1 S2 S3 S4]\n"
               "  NAME is the name of the device in the egtab file\n"
               "  Sn is an action to perform on n-th socket: "

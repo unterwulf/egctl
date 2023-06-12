@@ -5,6 +5,7 @@ Version 0.3
 Fixes
 -----
 
+ * Fix version number in the usage message
  * Fix warning when building with glibc >= 2.19
 
 Version 0.2
